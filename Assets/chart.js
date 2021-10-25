@@ -17,13 +17,29 @@ var Gantt = function() {
 
 // Save record after a resize or move
 Gantt.prototype.saveRecord = function(record) {
+
+	//	var data = JSON.parse(JSON.stringify(record));
+	record.counter  = record.counter ? record.counter+1 : 0;
+	var data = {
+			id: record.id
+	}
+	
+	data.start = record.start || "";
+	data.starttime = record.starttime;
+
+	data.end = record.end || "";
+	data.endtime = record.endtime;
+	
     $.ajax({
         cache: false,
         url: $(this.options.container).data("save-url"),
         contentType: "application/json",
         type: "POST",
         processData: false,
-        data: JSON.stringify(record)
+        data: JSON.stringify(data),
+        success: function(response){
+        	console.log('add code for modal request to move linked tasks, here.', response)
+        }
     });
 };
 
@@ -77,6 +93,7 @@ Gantt.prototype.renderVerticalHeader = function() {
         if (this.data[i].type == "task") {
             content.append(jQuery('<strong>').text('#'+this.data[i].id+' '));
             content.append(jQuery("<a>", {"href": this.data[i].link, "title": this.data[i].title}).text(this.data[i].title));
+            content.append(jQuery("<small>").text(this.data[i].swimlane_name))
         }
         else {
             content
@@ -199,7 +216,7 @@ Gantt.prototype.addBlocks = function(slider, start) {
         var block = jQuery("<div>", {
             "class": "ganttview-block" + (this.options.allowMoves ? " ganttview-block-movable" : ""),
             "css": {
-                "width": ((size * this.options.cellWidth) - 9) + "px",
+                "width": ((size * this.options.cellWidth) -2 ) + "px", // -9
                 "margin-left": (offset * this.options.cellWidth) + "px"
             }
         }).append(text);
@@ -324,7 +341,7 @@ Gantt.prototype.listenForBlockResize = function(startDate) {
         delay: 300,
         stop: function() {
             var block = jQuery(this);
-            self.updateDataAndPosition(block, startDate);
+            self.updateDataAndPosition(block, startDate, 'resize');
             self.saveRecord(block.data("record"));
         }
     });
@@ -340,14 +357,17 @@ Gantt.prototype.listenForBlockMove = function(startDate) {
         grid: [this.options.cellWidth, this.options.cellWidth],
         stop: function() {
             var block = jQuery(this);
-            self.updateDataAndPosition(block, startDate);
+            self.updateDataAndPosition(block, startDate, 'move');
             self.saveRecord(block.data("record"));
         }
     });
 };
 
 // Update the record data and the position on the chart
-Gantt.prototype.updateDataAndPosition = function(block, startDate) {
+/*
+ * startDate is the graphs startDate
+ * */
+Gantt.prototype.updateDataAndPosition = function(block, startDate, type) {
     var container = jQuery("div.ganttview-slide-container", this.options.container);
     var scroll = container.scrollLeft();
     var offset = block.offset().left - container.offset().left - 1 + scroll;
@@ -360,26 +380,32 @@ Gantt.prototype.updateDataAndPosition = function(block, startDate) {
     // Set new start date
     var daysFromStart = Math.round(offset / this.options.cellWidth);
     var newStart = this.addDays(this.cloneDate(startDate), daysFromStart);
+    
     if (!record.date_started_not_defined || this.compareDate(newStart, record.start)) {
         record.start = this.addDays(this.cloneDate(startDate), daysFromStart);
-        record.date_started_not_defined = true;
+        // ?? why was that, this produced wrong results
+//        record.date_started_not_defined = true;
     }
-    else if (record.date_started_not_defined) {
-        delete record.start;
-    }
+//    else if (record.date_started_not_defined) {
+//        delete record.start;
+//    }
 
     // Set new end date
     var width = block.outerWidth();
-    var numberOfDays = Math.round(width / this.options.cellWidth) - 1;
+    var numberOfDays = Math.round(width / this.options.cellWidth);
+//    if ( type === 'move'){
+    	numberOfDays -= 1;
+//    }
     var newEnd = this.addDays(this.cloneDate(newStart), numberOfDays);
     if (!record.date_due_not_defined || this.compareDate(newEnd, record.end)) {
         record.end = newEnd;
-        record.date_due_not_defined = true;
+//        record.date_due_not_defined = true;
     }
-    else if (record.date_due_not_defined) {
-        delete record.end;
-    }
-
+//    else if (record.date_due_not_defined) {
+//        delete record.end;
+//    }
+//    console.log(record.start, daysFromStart, numberOfDays, record.end);
+    
     if (record.type === "task" && numberOfDays > 0) {
         this.addTaskBarText(jQuery("div.ganttview-block-text", block), record, numberOfDays);
     }

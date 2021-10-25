@@ -8,6 +8,9 @@
             <li <?= $sorting === 'date' ? 'class="active"' : '' ?>>
                 <?= $this->url->icon('sort-amount-asc', t('Sort by date'), 'TaskGanttController', 'show', array('project_id' => $project['id'], 'sorting' => 'date', 'plugin' => 'Gantt')) ?>
             </li>
+            <li <?= $sorting === 'swimlane' ? 'class="active"' : '' ?>>
+                <?= $this->url->icon('sort-amount-asc', t('Sort by swimlane'), 'TaskGanttController', 'show', array('project_id' => $project['id'], 'sorting' => 'swimlane', 'plugin' => 'Gantt')) ?>
+            </li>
             <li>
                 <?= $this->modal->large('plus', t('Add task'), 'TaskCreationController', 'show', array('project_id' => $project['id'])) ?>
             </li>

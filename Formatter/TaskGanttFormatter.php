@@ -68,6 +68,8 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
                 (int) date('n', $end),
                 (int) date('j', $end),
             ),
+            'starttime' => date('\+H \h\o\u\r\s \+i \m\i\n\u\t\e\s \+s \s\e\c\o\n\d\s', $start),
+            'endtime' => date('\+H \h\o\u\r\s \+i \m\i\n\u\t\e\s \+s \s\e\c\o\n\d\s', $end),
             'column_title' => $task['column_name'],
             'assignee' => $task['assignee_name'] ?: $task['assignee_username'],
             'progress' => $this->taskModel->getProgress($task, $this->columns[$task['project_id']]).'%',
@@ -76,6 +78,8 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
             'not_defined' => empty($task['date_due']) || empty($task['date_started']),
             'date_started_not_defined' => empty($task['date_started']),
             'date_due_not_defined' => empty($task['date_due']),
+
+            'swimlane_name' =>  $task['swimlane_name']
         );
     }
 }
