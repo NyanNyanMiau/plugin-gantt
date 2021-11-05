@@ -15,6 +15,17 @@ var Gantt = function() {
     };
 };
 
+toggleCheckboxes = function(self, selector)
+{
+	var state = $(self).data('state') || 0;
+	if (state) {
+		$(selector).prop('checked', false);
+	}else{
+		$(selector).prop('checked', true);
+	}
+	$(self).data('state', !state);
+}
+
 // Save record after a resize or move
 Gantt.prototype.saveRecord = function(record) {
 
@@ -38,7 +49,11 @@ Gantt.prototype.saveRecord = function(record) {
         processData: false,
         data: JSON.stringify(data),
         success: function(response){
-        	console.log('add code for modal request to move linked tasks, here.', response)
+        	console.log('add code for modal request to move linked tasks, here.', response);
+        	
+        	if (response.result && response.result.linkedCount) {
+        		KB.modal.open(response.result.linkedMoveUrl, 'large', true)
+        	}
         }
     });
 };

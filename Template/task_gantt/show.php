@@ -14,6 +14,9 @@
             <li>
                 <?= $this->modal->large('plus', t('Add task'), 'TaskCreationController', 'show', array('project_id' => $project['id'])) ?>
             </li>
+<!--             <li> -->
+	            <?= "" // $this->modal->large('plus', t('Move task'), 'TaskGanttController', 'showMove', array('project_id' => $project['id'], 'task_id' => 51, 'plugin' => 'Gantt', 'startDiff' => 1, 'dueDiff' => '1')) ?>
+<!--             </li> -->
         </ul>
     </div>
 
