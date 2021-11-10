@@ -122,7 +122,7 @@ class TaskGanttController extends BaseController
 
                 $this->response->json(array('message' => 'OK', 'result' => [
                     'linkedCount' => $i1 + $i2,
-                    'linkedMoveUrl' => '/?controller=TaskGanttController&action=showMove&project_id='.$task['project_id'].'&task_id='.$task['id'].'&plugin=Gantt&startDiff='.$startDiff.'&dueDiff='.$dueDiff
+                    'linkedMoveUrl' => '/?controller=TaskGanttController&action=showMove&project_id='.$task['project_id'].'&task_id='.$task['id'].'&plugin=Gantt&startDiff='.floor($startDiff).'&dueDiff='.floor($dueDiff)
                 ]), 201);
             }
         } else {
