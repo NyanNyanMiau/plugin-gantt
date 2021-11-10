@@ -78,8 +78,8 @@
 					<i><?= $this->text->e($columns_list[$task['column_id']]) ?></i>
 				</span></label>
 				<div class="col-2 text-right calculateWrap">
-					<b class="new_startdate" data-date="<?= $task['date_started'] ?>"><?= $task['date_started'] ? date('d.m.Y', $task['date_started']) : '-' ?></b> /
-					<b class="new_duedate" data-date="<?= $task['date_due'] ?>"><?= $task['date_due'] ? date('d.m.Y', $task['date_due']) : '-' ?></b>
+					<b class="new_startdate" data-date="<?= $task['date_started'] ?>"><?= $task['date_started'] ? date('d.m.Y', $task['date_started'] + $startDiff*86400) : '-' ?></b> /
+					<b class="new_duedate" data-date="<?= $task['date_due'] ?>"><?= $task['date_due'] ? date('d.m.Y', $task['date_due'] + $dueDiff*86400) : '-' ?></b>
 				</div>
 			</div>
 			<?php endforeach; ?>
