@@ -58,25 +58,44 @@ class TaskGanttController extends BaseController
         $values = [];
 
         if (! empty($changes['start'])) {
+            // midnight js date string
             $values['date_started'] = strtotime($changes['start']);
-            $values['date_started'] = strtotime( $changes['starttime'], $values['date_started']);
         }
 
         if (! empty($changes['end'])) {
+            // midnight js date string
             $values['date_due'] = strtotime($changes['end']);
-            $values['date_due'] = strtotime( $changes['endtime'], $values['date_due']);
         }
+
+        $startDiff = $dueDiff = 0;
 
         if (! empty($values)) {
             $values['id'] = $changes['id'];
 
             $task = $this->taskFinderModel->getById($values['id']);
-            $oldStart = $task['date_started'];
-            $oldDue = $task['date_due'];
+            if (isset($values['date_started']) && $task['date_started']) {
+                // keep time
+                $oldStart = $task['date_started'];
+                $oldStartMidnight = strtotime("midnight", $oldStart);
+                $oldStartTime = $oldStart - $oldStartMidnight;
+
+                $values['date_started'] += $oldStartTime;
+                $startDiff = ($values['date_started'] - $oldStart) / 86400;
+            }
+            if (isset($values['date_due']) && $task['date_due']) {
+                // keep time
+                $oldDue = $task['date_due'];
+                $oldDueMidnight = strtotime("midnight", $oldDue);
+                $oldDueTime = $oldDue - $oldDueMidnight;
+
+                $values['date_due'] += $oldDueTime;
+                $dueDiff = ($values['date_due'] - $oldDue) / 86400;
+            }
 
             $result = $this->taskModificationModel->update($values);
 
             if (! $result) {
+
                 $this->response->json(array('message' => 'Unable to save task'), 400);
             } else {
 
@@ -95,10 +114,11 @@ class TaskGanttController extends BaseController
                 }
 
                 $i1 = count($tasks_list);
-                $i2 = count($this->subtaskModel->getAll($task['id']));
-
-                $startDiff = ($values['date_started'] - $oldStart) / 86400;
-                $dueDiff = ($values['date_due'] - $oldDue) / 86400;
+                $i2 = $this->subtaskModel->getQuery()
+                            ->eq('task_id', $task['id'])
+                            ->neq('status', 2)
+                            ->neq('due_date', 0)
+                            ->count();
 
                 $this->response->json(array('message' => 'OK', 'result' => [
                     'linkedCount' => $i1 + $i2,
@@ -129,7 +149,7 @@ class TaskGanttController extends BaseController
         $tasks_list = [];
         foreach ($graph['tasks'] as $linkedtask) {
             // not is_active  = 0
-            if (!$task['is_active']) continue;
+            if (! $linkedtask['is_active']) continue;
 //             // not start or due date = 0
             if (!$linkedtask['date_started'] && !$linkedtask['date_due']) continue;
 
@@ -147,7 +167,6 @@ class TaskGanttController extends BaseController
             'dueDiff' => $dueDiff,
             'columns_list' => $columns_list
         )));
-//         echo "<pre>", print_r($graph['tasks'], 1), print_r($taskSubtasks, 1), "</pre>";
     }
 
     protected function traverseGraph(&$graph, $task, $test=false)
@@ -155,9 +174,9 @@ class TaskGanttController extends BaseController
         // add new task
         if (!isset($graph['tasks'][$task['id']])) {
             $graph['tasks'][$task['id']] = $task;
-            if (!$test) {
-                $graph['tasks'][$task['id']]['subtasks'] = $this->subtaskModel->getAll($task['id']);
-            }
+//             if (!$test) {
+//                 $graph['tasks'][$task['id']]['subtasks'] = $this->subtaskModel->getAll($task['id']);
+//             }
         }
 
         foreach ($this->taskLinkModel->getAllGroupedByLabel($task['id']) as $type => $links) {
@@ -172,6 +191,91 @@ class TaskGanttController extends BaseController
                     }
             }
         }
+    }
+
+
+    public function saveMoveLinked()
+    {
+        $project = $this->getProject();
+        $mainTask = $this->getTask();
+        $values = $this->request->getValues();
+
+        if (!count($values)) {
+            die('Form data invalid!');
+        }
+
+        $startDiff  = isset($values["startDiffActive"]) && $values["startDiffActive"] && isset($values["startDiffAmount"]) && (int)$values["startDiffAmount"] !== 0 ? (int) $values["startDiffAmount"] : 0;
+        $dueDiff    = isset($values["dueDiffActive"]) && $values["dueDiffActive"] && isset($values["dueDiffAmount"]) && (int)$values["dueDiffAmount"] !== 0 ? (int) $values["dueDiffAmount"] : 0;
+        $tasks      = isset($values['tasks']) ? (array) $values['tasks'] : [];
+        $columns    = isset($values['columns']) ? (array) $values['columns'] : [];
+
+        $updSubtasks = isset($values["subtasksActive"]) && $values["subtasksActive"] ? true : false;
+
+        $taskCounter = 0;
+        $subTaskCounter = 0;
+        // mainTask  subtasks
+        if ($updSubtasks && $dueDiff !== 0) {
+            // update subtasks
+            $subTaskCounter += $this->updateSubtasks($mainTask["id"], $dueDiff);
+        }
+
+        // proccess passed tasks in columns
+        if ( count($tasks) && count($columns) ) {
+            foreach ($values['tasks'] as $taskId) {
+
+                $updTask = $this->taskFinderModel->getById($taskId);
+                // ignore  if no task or not in correct column
+                if ( !count($updTask) || !isset($columns[$updTask['column_id']])){
+                    continue;
+                }
+
+                // prepare update
+                $updData = [
+                    'id' => $updTask['id']
+                ];
+                // update due
+                if ($updTask['date_due'] && $dueDiff !== 0) {
+                    $updData['date_due'] = $updTask['date_due'] + $dueDiff * 86400;
+                }
+                // update start
+                if ($updTask['date_started'] && $startDiff !== 0) {
+                    $updData['date_started'] = $updTask['date_started'] + $startDiff * 86400;
+                }
+
+                if ( $this->taskModificationModel->update($updData, $fireEvents = true) ) {
+                    $taskCounter ++;
+                }
+
+                if ($updSubtasks && $dueDiff !== 0) {
+                    // update subtasks
+                    $subTaskCounter += $this->updateSubtasks($taskId, $dueDiff);
+                }
+            }
+        }
+
+        $this->flash->success(t('%s task(s) and %s subtask(s) updated.', $taskCounter, $subTaskCounter));
+        $this->response->redirect($this->helper->url->to('TaskGanttController', 'show', ['project_id' => $project['id'], 'plugin' => 'Gantt']));
+    }
+
+    private function updateSubtasks($task_id, $dueDiff = 0)
+    {
+        $subtasks = $this->subtaskListFormatter
+            ->withQuery(
+                    $this->subtaskModel->getQuery()
+                        ->eq('task_id', $task_id)
+                        ->neq('status', 2)
+                        ->neq('due_date', 0)
+            )->format();
+
+        if (count($subtasks)) {
+            foreach ($subtasks as $subtask) {
+                $this->subtaskModel->update([
+                    'id' => $subtask['id'],
+                    'due_date' => $subtask['due_date'] + $dueDiff * 86400
+                ], $fireEvents = true);
+            }
+        }
+        return count($subtasks);
     }
 
 }

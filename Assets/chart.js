@@ -1,3 +1,28 @@
+// move form funcs
+
+function getLang() {
+  if (navigator.languages != undefined) 
+    return navigator.languages[0]; 
+  return navigator.language;
+}
+
+function toggleCheckboxes(self, selector)
+{
+	var state = $(self).data('state') || 0;
+	if (state) {
+		$(selector).prop('checked', false);
+	}else{
+		$(selector).prop('checked', true);
+	}
+	$(self).data('state', !state);
+}
+
+if (moment) {
+	moment.locale(getLang())
+}
+
+
+
 // Based on jQuery.ganttView v.0.8.8 Copyright (c) 2010 JC Grubbs - jc.grubbs@devmynd.com - MIT License
 var Gantt = function() {
     this.data = [];
@@ -15,31 +40,18 @@ var Gantt = function() {
     };
 };
 
-toggleCheckboxes = function(self, selector)
-{
-	var state = $(self).data('state') || 0;
-	if (state) {
-		$(selector).prop('checked', false);
-	}else{
-		$(selector).prop('checked', true);
-	}
-	$(self).data('state', !state);
-}
-
 // Save record after a resize or move
 Gantt.prototype.saveRecord = function(record) {
 
 	//	var data = JSON.parse(JSON.stringify(record));
 	record.counter  = record.counter ? record.counter+1 : 0;
 	var data = {
-			id: record.id
+		id: record.id,
+		start: record.start || "",
+		end: record.end || ""
 	}
 	
-	data.start = record.start || "";
-	data.starttime = record.starttime;
-
-	data.end = record.end || "";
-	data.endtime = record.endtime;
+	showFullPageLoader();
 	
     $.ajax({
         cache: false,
@@ -48,14 +60,14 @@ Gantt.prototype.saveRecord = function(record) {
         type: "POST",
         processData: false,
         data: JSON.stringify(data),
-        success: function(response){
+        success: function(response) {
         	console.log('add code for modal request to move linked tasks, here.', response);
         	
         	if (response.result && response.result.linkedCount) {
         		KB.modal.open(response.result.linkedMoveUrl, 'large', true)
         	}
         }
-    });
+    }).always(function(){ removeFullPageLoader(); });
 };
 
 // Build the Gantt chart
@@ -101,14 +113,15 @@ Gantt.prototype.renderVerticalHeader = function() {
     var seriesDiv = jQuery("<div>", { "class": "ganttview-vtheader-series" });
 
     for (var i = 0; i < this.data.length; i++) {
-        var content = jQuery("<span>")
+    	var swimlane = jQuery("<span class='swimlanename'>");
+        var content = jQuery("<span class='taskname'>")
             .append(this.infoTooltip(this.getVerticalHeaderTooltip(this.data[i])))
             .append("&nbsp;");
 
         if (this.data[i].type == "task") {
             content.append(jQuery('<strong>').text('#'+this.data[i].id+' '));
             content.append(jQuery("<a>", {"href": this.data[i].link, "title": this.data[i].title}).text(this.data[i].title));
-            content.append(jQuery("<small>").text(this.data[i].swimlane_name))
+            swimlane.text(this.data[i].swimlane_name);
         }
         else {
             content
@@ -119,7 +132,7 @@ Gantt.prototype.renderVerticalHeader = function() {
                 .append(jQuery("<a>", {"href": this.data[i].link}).text(this.data[i].title));
         }
 
-        seriesDiv.append(jQuery("<div>", {"class": "ganttview-vtheader-series-name"}).append(content));
+        seriesDiv.append(jQuery("<div>", {"class": "ganttview-vtheader-series-name"}).append(content).append(swimlane));
     }
 
     itemDiv.append(seriesDiv);

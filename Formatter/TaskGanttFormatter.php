@@ -78,7 +78,6 @@ class TaskGanttFormatter extends BaseFormatter implements FormatterInterface
             'not_defined' => empty($task['date_due']) || empty($task['date_started']),
             'date_started_not_defined' => empty($task['date_started']),
             'date_due_not_defined' => empty($task['date_due']),
-
             'swimlane_name' =>  $task['swimlane_name']
         );
     }
