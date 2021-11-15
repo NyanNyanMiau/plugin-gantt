@@ -50,12 +50,12 @@
 <?php if (count($columns_list)) :?>
 	<div class="panel">
 		<div class="d-flex align-items-center mb-4">
-			<div class="col-auto"><button class="m-0 btn btn" type="button" onclick="toggleCheckboxes(this, '#redateColumns input')" data-state="0"><?= t('alle Spalten aktivieren/deaktivieren') ?></button></div>
+			<div class="col-auto"><button class="m-0 btn btn" type="button" onclick="toggleCheckboxes(this, '#redateColumns input')" data-state="1"><?= t('alle Spalten aktivieren/deaktivieren') ?></button></div>
 		</div>
 		<div id="redateColumns" class="d-flex">
 			<?php $chunks = array_chunk($columns_list, 4, true);
 			    foreach ($chunks as $chunk): ?>
-					<div class="col-3"><?= $this->form->checkboxes('columns', $chunk) ?></div>
+					<div class="col-3"><?= $this->form->checkboxes('columns', $chunk, ['columns' => array_keys($chunk)]) ?></div>
 			<?php endforeach; ?>
 		</div>
 	</div>
@@ -64,14 +64,14 @@
 <?php if (count($linkedTasks)): ?>
 	<div class="panel">
 		<div class="d-flex align-items-center mb-4">
-			<div class="col-auto"><button class="m-0 btn btn" type="button" onclick="toggleCheckboxes(this, '#redateTasks input')" data-state="0"><?= t('alle Aufgaben aktivieren/deaktivieren') ?></button></div>
+			<div class="col-auto"><button class="m-0 btn btn" type="button" onclick="toggleCheckboxes(this, '#redateTasks input')" data-state="1"><?= t('alle Aufgaben aktivieren/deaktivieren') ?></button></div>
 			<div class="col-3 ms-auto text-right">neues Start- / Fälligkeitsdatum</div>
 		</div>
 		<div id="redateTasks">
  			<?php foreach ($linkedTasks as $task): ?>
  			<div class="d-flex">
 				<label class="col-10 align-items-start">
-					<input type="checkbox" name="tasks[]" value="<?= $task["id"] ?>">&nbsp;<span>#<?= $task["id"] ?>
+					<input type="checkbox" name="tasks[]" value="<?= $task["id"] ?>" checked="checked">&nbsp;<span>#<?= $task["id"] ?>
 					<?= $this->text->e($task["title"]) ?> •
 					<i><?= $this->text->e($task['project_name']) ?></i> &gt;
 					<i><?= $this->text->e($task['swimlane_name']) ?></i> &gt;
